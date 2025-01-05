@@ -1,95 +1,61 @@
 package org.modularsoft.zander.hub;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
+import java.io.File;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.modularsoft.zander.hub.configs.MessageConfig;
+import org.modularsoft.zander.hub.configs.MessagesConfig;
+import org.modularsoft.zander.hub.configs.HubLocationsConfig;
 
-import java.io.File;
-
-public class ConfigurationManager {
+public final class ConfigurationManager {
     private static FileConfiguration welcomeFile;
-    private static MessageConfig messageConfig;
+    private static HubLocationsConfig hubLocationsConfig;
+    private static MessagesConfig messagesConfig;
 
-    //
-    // Welcome File
-    //
+    private ConfigurationManager() {
+        throw new IllegalStateException("Utility class shouldn't be instantiated");
+    }
+
+    public static void setupHubLocations() {
+        if (hubLocationsConfig != null)
+            throw new IllegalStateException("Already setup, ensure there's a single call");
+        hubLocationsConfig = new HubLocationsConfig(ZanderHubMain.plugin);
+        hubLocationsConfig.setupSpawn();
+        // future? hubLocationsConfig.setupParkour();
+    }
+
+    public static void setupMessages() {
+        if (messagesConfig != null)
+            throw new IllegalStateException("Already setup, ensure there's a single call");
+        messagesConfig = new MessagesConfig(ZanderHubMain.plugin);
+        messagesConfig.setupJoinLeave();
+    }
+
     public static void setupWelcomeFile() {
-        if (!ZanderHubMain.plugin.getDataFolder().exists()) {
-            ZanderHubMain.plugin.getDataFolder().mkdir();
-        }
-        File existingWelcomeFile = new File(ZanderHubMain.plugin.getDataFolder(), "welcome.yml");
-
-        if (!existingWelcomeFile.exists()) {
-            // Reads the welcome.yml from the resource folder and then creates the file in
-            // the folder that
-            // goes next to the plugin.
+        if (welcomeFile != null)
+            throw new IllegalStateException("Already setup, ensure there's a single call");
+        File dataFolder = ZanderHubMain.plugin.getDataFolder();
+        File welcomeFileYML = new File(dataFolder, "welcome.yml");
+        if (!welcomeFileYML.exists())
             ZanderHubMain.plugin.saveResource("welcome.yml", false);
-            Bukkit.getServer().getConsoleSender().sendMessage(
-                    Component.text("The welcome.yml file has been created.", NamedTextColor.GREEN));
-        }
-        // Reopen the file since it should exist now
-        existingWelcomeFile = new File(ZanderHubMain.plugin.getDataFolder(), "welcome.yml");
-        welcomeFile = YamlConfiguration.loadConfiguration(existingWelcomeFile);
+
+        ConfigurationManager.welcomeFile = YamlConfiguration.loadConfiguration(welcomeFileYML);
+    }
+
+    public static HubLocationsConfig getHubLocations() {
+        if (hubLocationsConfig == null)
+            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupHubLocations'");
+        return hubLocationsConfig;
+    }
+
+    public static MessagesConfig getMessages() {
+        if (messagesConfig == null)
+            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupMessages'");
+        return messagesConfig;
     }
 
     public static FileConfiguration getWelcome() {
-        if (welcomeFile == null) {
-            setupWelcomeFile();
-        }
+        if (welcomeFile == null)
+            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupWelcomeFile'");
         return welcomeFile;
-    }
-
-    public static Location getHubLocation() {
-        World defaultworld = Bukkit.getServer().getWorlds().get(0);
-        World hubworld = Bukkit
-                .getWorld(ZanderHubMain.plugin.getConfig().getString("hub.world", defaultworld.getName()));
-        if (hubworld == null) {
-            Bukkit.getLogger().warning(
-                    "No world by the name of " + defaultworld.getName() + " was found! Assuming default world.");
-            hubworld = Bukkit.getServer().getWorlds().get(0);
-        }
-        double hubx = ZanderHubMain.plugin.getConfig().getDouble("hub.x", defaultworld.getSpawnLocation().getX());
-        double huby = ZanderHubMain.plugin.getConfig().getDouble("hub.y", defaultworld.getSpawnLocation().getY());
-        double hubz = ZanderHubMain.plugin.getConfig().getDouble("hub.z", defaultworld.getSpawnLocation().getZ());
-        float hubyaw = (float) ZanderHubMain.plugin.getConfig().getDouble("hub.yaw", 0);
-        float hubpitch = (float) ZanderHubMain.plugin.getConfig().getDouble("hub.pitch", 0);
-
-        return new Location(hubworld, hubx, huby, hubz, hubyaw, hubpitch);
-    }
-
-    public static void setupMessage() {
-        FileConfiguration config = ZanderHubMain.plugin.getConfig();
-
-        // ensure join/leave messages exist in 'config.yml'
-        boolean hasModifiedConfig = false;
-        if (!config.contains("messages.join")) {
-            config.set("messages.join", "&7%p% joined.");
-            hasModifiedConfig = true;
-        }
-        if (!config.contains("messages.leave")) {
-            config.set("messages.leave", "&7%p% left.");
-            hasModifiedConfig = true;
-        }
-        if (hasModifiedConfig) {
-            ZanderHubMain.plugin.saveConfig();
-        }
-
-        // create an instance of the config and instate join/leave messages
-        messageConfig = new MessageConfig(ZanderHubMain.plugin);
-        messageConfig.setupJoinLeave(
-                config.getString("messages.join"),
-                config.getString("messages.leave"));
-    }
-
-    public static MessageConfig getMessage() {
-        if (messageConfig == null) {
-            throw new IllegalStateException("Bad order of execution, first run 'setupMessage'");
-        }
-        return messageConfig;
     }
 }

@@ -2,6 +2,9 @@ package org.modularsoft.zander.hub.utils;
 
 import org.bukkit.Sound;
 
+/**
+ * Utility class providing functions on welcome sounds.
+ */
 public final class WelcomeSounds {
 
     private static final Sound[] SOUNDS = {

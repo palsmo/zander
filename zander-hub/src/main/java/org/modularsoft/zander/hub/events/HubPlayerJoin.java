@@ -16,10 +16,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.modularsoft.zander.hub.ConfigurationManager;
-import org.modularsoft.zander.hub.ZanderHubMain;
 import org.modularsoft.zander.hub.items.NavigationCompassItem;
 import org.modularsoft.zander.hub.utils.Misc;
 import org.modularsoft.zander.hub.utils.WelcomeSounds;
@@ -42,9 +42,9 @@ public class HubPlayerJoin implements Listener {
             Color.ORANGE, Color.WHITE, Color.AQUA, Color.LIME,
     };
 
-    private final ZanderHubMain plugin;
+    private final JavaPlugin plugin;
 
-    public HubPlayerJoin(ZanderHubMain plugin) {
+    public HubPlayerJoin(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -61,17 +61,17 @@ public class HubPlayerJoin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
         setInitialState(player); // * just be aware, runs before checking vanish
         if (Misc.isVanish(player))
             return;
 
-        event.joinMessage(ConfigurationManager.getMessage().playerJoin(player.displayName()));
+        event.joinMessage(ConfigurationManager.getMessages().playerJoin(player.displayName()));
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isConnected())
                 return;
-            // * bukkit uses 'world/playerdata' dir for tracking
-            if (!player.hasPlayedBefore() || TEST_ALWAYS_FIRST_JOIN) {
+            if (!player.hasPlayedBefore() || TEST_ALWAYS_FIRST_JOIN) { // * bukkit uses 'world/playerdata' dir
                 chatWelcomeMessage(player);
                 spawnWelcomeFirework(player);
             }
@@ -89,10 +89,24 @@ public class HubPlayerJoin implements Listener {
     /// Set the initial state of the player in the world.
     private void setInitialState(Player player) {
         setupNoCollision(player);
-        player.teleport(ConfigurationManager.getHubLocation());
+        Location spawn = ConfigurationManager.getHubLocations().spawn();
+        plugin.getLogger().info(String.format(
+                "DEBUG Spawn: world='%s', x=%.2f, y=%.2f, z=%.2f, yaw=%.2f, pitch=%.2f",
+                spawn.getWorld() != null ? spawn.getWorld().getName() : "null",
+                spawn.getX(),
+                spawn.getY(),
+                spawn.getZ(),
+                spawn.getYaw(),
+                spawn.getPitch()));
+        player.teleport(spawn);
         player.getInventory().clear();
         player.getInventory().setHeldItemSlot(NAV_COMPASS_SLOT);
         NavigationCompassItem.giveCompass(player);
+        // setupNoCollision(player);
+        // player.teleport(ConfigurationManager.getHubLocations().spawn());
+        // player.getInventory().clear();
+        // player.getInventory().setHeldItemSlot(NAV_COMPASS_SLOT);
+        // NavigationCompassItem.giveCompass(player);
     }
 
     /// Disable entity collision for player.
@@ -139,6 +153,7 @@ public class HubPlayerJoin implements Listener {
         for (int i = 0; i < numColors; i++) {
             colors.add(FCP[random.nextInt(FCP.length)]);
         }
+
         // random fade-color and firework type
         Color fadeColor = FCP[random.nextInt(FCP.length)];
         FireworkEffect.Type[] types = FireworkEffect.Type.values();
@@ -156,9 +171,8 @@ public class HubPlayerJoin implements Listener {
         firework.setFireworkMeta(meta);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (firework.isValid()) {
+            if (firework.isValid())
                 firework.detonate();
-            }
         }, FIREWORK_DETONATE_DELAY);
     }
 }

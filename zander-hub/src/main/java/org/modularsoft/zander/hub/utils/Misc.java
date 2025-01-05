@@ -3,6 +3,9 @@ package org.modularsoft.zander.hub.utils;
 import de.myzelyam.api.vanish.VanishAPI;
 import org.bukkit.entity.Player;
 
+/**
+ * Utility class providing miscellaneous functions.
+ */
 public final class Misc {
 
     private Misc() {
