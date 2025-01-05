@@ -89,24 +89,10 @@ public class HubPlayerJoin implements Listener {
     /// Set the initial state of the player in the world.
     private void setInitialState(Player player) {
         setupNoCollision(player);
-        Location spawn = ConfigurationManager.getHubLocations().spawn();
-        plugin.getLogger().info(String.format(
-                "DEBUG Spawn: world='%s', x=%.2f, y=%.2f, z=%.2f, yaw=%.2f, pitch=%.2f",
-                spawn.getWorld() != null ? spawn.getWorld().getName() : "null",
-                spawn.getX(),
-                spawn.getY(),
-                spawn.getZ(),
-                spawn.getYaw(),
-                spawn.getPitch()));
-        player.teleport(spawn);
+        player.teleport(ConfigurationManager.getHubLocations().spawn());
         player.getInventory().clear();
         player.getInventory().setHeldItemSlot(NAV_COMPASS_SLOT);
         NavigationCompassItem.giveCompass(player);
-        // setupNoCollision(player);
-        // player.teleport(ConfigurationManager.getHubLocations().spawn());
-        // player.getInventory().clear();
-        // player.getInventory().setHeldItemSlot(NAV_COMPASS_SLOT);
-        // NavigationCompassItem.giveCompass(player);
     }
 
     /// Disable entity collision for player.
