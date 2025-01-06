@@ -3,19 +3,21 @@ package org.modularsoft.zander.hub;
 import java.io.File;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.modularsoft.zander.hub.configs.MessagesConfig;
 import org.modularsoft.zander.hub.configs.HubLocationsConfig;
+import org.modularsoft.zander.hub.configs.MessagesConfig;
+import org.modularsoft.zander.hub.configs.MiscConfig;
 
 public final class ConfigurationManager {
     private static FileConfiguration welcomeFile;
     private static HubLocationsConfig hubLocationsConfig;
     private static MessagesConfig messagesConfig;
+    private static MiscConfig miscConfig;
 
     private ConfigurationManager() {
         throw new IllegalStateException("Utility class shouldn't be instantiated");
     }
 
-    public static void setupHubLocations() {
+    public static void setupHubLocationsConfig() {
         if (hubLocationsConfig != null)
             throw new IllegalStateException("Already setup, ensure there's a single call");
         hubLocationsConfig = new HubLocationsConfig(ZanderHubMain.plugin);
@@ -23,11 +25,19 @@ public final class ConfigurationManager {
         // future? hubLocationsConfig.setupParkour();
     }
 
-    public static void setupMessages() {
+    public static void setupMessagesConfig() {
         if (messagesConfig != null)
             throw new IllegalStateException("Already setup, ensure there's a single call");
         messagesConfig = new MessagesConfig(ZanderHubMain.plugin);
         messagesConfig.setupJoinLeave();
+    }
+
+    public static void setupMiscConfig() {
+        if (miscConfig != null)
+            throw new IllegalStateException("Already setup, ensure there's a single call");
+        miscConfig = new MiscConfig(ZanderHubMain.plugin);
+        miscConfig.setupSlotHubCompass();
+        miscConfig.setupAlwaysFirstJoin();
     }
 
     public static void setupWelcomeFile() {
@@ -37,20 +47,25 @@ public final class ConfigurationManager {
         File welcomeFileYML = new File(dataFolder, "welcome.yml");
         if (!welcomeFileYML.exists())
             ZanderHubMain.plugin.saveResource("welcome.yml", false);
-
-        ConfigurationManager.welcomeFile = YamlConfiguration.loadConfiguration(welcomeFileYML);
+        welcomeFile = YamlConfiguration.loadConfiguration(welcomeFileYML);
     }
 
     public static HubLocationsConfig getHubLocations() {
         if (hubLocationsConfig == null)
-            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupHubLocations'");
+            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupHubLocationsConfig'");
         return hubLocationsConfig;
     }
 
     public static MessagesConfig getMessages() {
         if (messagesConfig == null)
-            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupMessages'");
+            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupMessagesConfig'");
         return messagesConfig;
+    }
+
+    public static MiscConfig getMisc() {
+        if (miscConfig == null)
+            throw new IllegalStateException("Missing setup, first run 'ConfigurationManager.setupMiscConfig'");
+        return miscConfig;
     }
 
     public static FileConfiguration getWelcome() {

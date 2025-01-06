@@ -9,7 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.modularsoft.zander.hub.ZanderHubMain;
 
 /**
- * Utility class providing validators for fields on Bukkit config object.
+ * Utility class providing validators for YAML fields in Bukkit config objects.
  */
 public final class ConfigValidator {
     private static final JavaPlugin plugin = ZanderHubMain.plugin;
@@ -55,14 +55,14 @@ public final class ConfigValidator {
     }
 
     /// Validate `field` in `config` with custom `validator` function.
-    /// When validator fails, `defaultValue` is used and instated in `config`
+    /// When validator fails, `fallback` is used and instated in `config`
     public static ValidationResult validateConfig(FileConfiguration config, String field,
-            Validator validator, Object defaultValue) {
+            Validator validator, Object fallback) {
         ValidationResult result = validator.validate(config, field);
         if (!result.isValid()) {
-            config.set(field, defaultValue);
+            config.set(field, fallback);
             plugin.getLogger().warning(
-                    String.format("Invalid '%s' in config.yml, replaced by fallback '%s'", field, defaultValue));
+                    String.format("Invalid '%s' in config.yml, replaced by fallback '%s'", field, fallback));
             plugin.getLogger().warning(result.getLog());
         }
         return result;
@@ -70,21 +70,37 @@ public final class ConfigValidator {
 
     /// Overload for `validator` that want integration with setting values.
     public static <T> ValidationResult validateConfig(FileConfiguration config, String field,
-            ValidatorWithSetter<T> validator, Object defaultValue, Consumer<T> setter) {
+            ValidatorWithSetter<T> validator, Object fallback, Consumer<T> setter) {
         ValidationResult result = validator.validate(config, field, setter);
         if (!result.isValid()) {
-            config.set(field, defaultValue);
+            config.set(field, fallback);
             plugin.getLogger().warning(
-                    String.format("Invalid '%s' in config.yml, replaced by fallback '%s'", field, defaultValue));
+                    String.format("Invalid '%s' in config.yml, replaced by fallback '%s'", field, fallback));
             plugin.getLogger().warning(result.getLog());
         }
         return result;
     }
 
+    /// Validate `field` value is a boolean.
+    /// Yaml true: [y, Y, yes, Yes, YES, true, True, TRUE, on, On, ON]
+    /// Yaml fale: [n, N, no, No, NO, false, False, FALSE, off, Off, OFF]
+    public static final Validator isValidBoolean = (config, field) -> {
+        if (!config.isBoolean(field))
+            return ValidationResult.failure(String.format("Reason '%s' wasn't a boolean value", field));
+        return ValidationResult.success();
+    };
+
     /// Validate `field` value is a double decimal.
     public static final Validator isValidDouble = (config, field) -> {
         if (!config.isDouble(field))
             return ValidationResult.failure(String.format("Reason '%s' wasn't a decimal number", field));
+        return ValidationResult.success();
+    };
+
+    /// Validate `field` value is an integer decimal.
+    public static final Validator isValidInt = (config, field) -> {
+        if (!config.isInt(field))
+            return ValidationResult.failure(String.format("Reason '%s' wasn't an integer number", field));
         return ValidationResult.success();
     };
 
@@ -105,10 +121,18 @@ public final class ConfigValidator {
         if (!config.isDouble(field))
             return ValidationResult.failure(String.format("Reason '%s' wasn't a decimal number", field));
         double value = config.getDouble(field);
-        if (value < -180.0 || value > 180.0) {
-            return ValidationResult
-                    .failure(String.format("Reason '%s' wasn't between -180.0 and 180.0", field));
-        }
+        if (value < -180.0 || value > 180.0)
+            return ValidationResult.failure(String.format("Reason '%s' wasn't between -180.0 and 180.0", field));
+        return ValidationResult.success();
+    };
+
+    /// Validate `field` value is proper hotbar index.
+    public static final Validator isValidHotbarSlot = (config, field) -> {
+        if (!config.isInt(field))
+            return ValidationResult.failure(String.format("Reason '%s' wasn't an integer number", field));
+        int value = config.getInt(field);
+        if (value < 0 || value > 8)
+            return ValidationResult.failure(String.format("Reason '%s' wasn't between 0 and 8", field));
         return ValidationResult.success();
     };
 
@@ -131,14 +155,14 @@ public final class ConfigValidator {
         // 3. verify field value can be converted to adventure text component
         // 4. use setter on parsed value (efficient no parse again in parent)
         if (!config.isString(field))
-            return ValidationResult.failure(String.format("Reason was '%s' must be a text string", field));
+            return ValidationResult.failure(String.format("Reason '%s' wasn't a text string", field));
 
         String textLegacy = config.getString(field);
         try {
             int placeholderIndex = textLegacy.indexOf("%p%");
             if (placeholderIndex == -1 || placeholderIndex != textLegacy.lastIndexOf("%p%")) {
                 return ValidationResult
-                        .failure(String.format("Reason was '%s' must contain exactly one '%p%' placeholder", field));
+                        .failure(String.format("Reason '%s' must contain exactly one '%p%' placeholder", field));
             }
             LegacyComponentSerializer serializer = LegacyComponentSerializer.legacyAmpersand();
             TextComponent template = serializer.deserialize(textLegacy);
@@ -147,7 +171,7 @@ public final class ConfigValidator {
 
         } catch (Exception e) {
             return ValidationResult
-                    .failure(String.format("Reason was '%s' has invalid format; %s", field, e.getMessage()));
+                    .failure(String.format("Reason '%s' has invalid format; %s", field, e.getMessage()));
         }
     };
 }

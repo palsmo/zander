@@ -20,6 +20,6 @@ public class HubPlayerLeave implements Listener {
         Player player = event.getPlayer();
         if (Misc.isVanish(player))
             return;
-        event.quitMessage(ConfigurationManager.getMessages().playerLeave(player.displayName()));
+        event.quitMessage(ConfigurationManager.getMessages().getPlayerLeave(player.displayName()));
     }
 }

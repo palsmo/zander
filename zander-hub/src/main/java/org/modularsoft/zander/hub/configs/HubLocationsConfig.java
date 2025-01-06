@@ -25,33 +25,41 @@ public class HubLocationsConfig {
         this.plugin = plugin;
     }
 
-    /// Configure the spawn location, ensures valid entries in 'config.yml'
+    /// Configure the hub spawn location.
+    /// Validates the entries in server 'config.yml' with fallback.
     public void setupSpawn() {
         FileConfiguration config = plugin.getConfig();
 
         // * access server's primary world (guaranteed by Bukkit to exist)
         Location defaultSpawn = Bukkit.getServer().getWorlds().get(0).getSpawnLocation();
 
-        validateConfig(config, "hub.world", isValidWorld, defaultSpawn.getWorld().getName());
-        validateConfig(config, "hub.x", isValidDouble, defaultSpawn.getX());
-        validateConfig(config, "hub.y", isValidDouble, defaultSpawn.getY());
-        validateConfig(config, "hub.z", isValidDouble, defaultSpawn.getZ());
-        validateConfig(config, "hub.pitch", isValidPitch, defaultSpawn.getPitch());
-        validateConfig(config, "hub.yaw", isValidYaw, defaultSpawn.getYaw());
+        String fieldWorld = "hub.world";
+        String fieldX = "hub.x";
+        String fieldY = "hub.y";
+        String fieldZ = "hub.z";
+        String fieldPitch = "hub.pitch";
+        String fieldYaw = "hub.yaw";
+
+        validateConfig(config, fieldWorld, isValidWorld, defaultSpawn.getWorld().getName());
+        validateConfig(config, fieldX, isValidDouble, defaultSpawn.getX());
+        validateConfig(config, fieldY, isValidDouble, defaultSpawn.getY());
+        validateConfig(config, fieldZ, isValidDouble, defaultSpawn.getZ());
+        validateConfig(config, fieldPitch, isValidPitch, defaultSpawn.getPitch());
+        validateConfig(config, fieldYaw, isValidYaw, defaultSpawn.getYaw());
 
         plugin.saveConfig(); // * save to external 'config.yml'
 
-        World hubWorld = Bukkit.getWorld(config.getString("hub.world"));
-        double hubX = config.getDouble("hub.x");
-        double hubY = config.getDouble("hub.y");
-        double hubZ = config.getDouble("hub.z");
-        float hubYaw = (float) config.getDouble("hub.yaw");
-        float hubPitch = (float) config.getDouble("hub.pitch");
+        World hubWorld = Bukkit.getWorld(config.getString(fieldWorld));
+        double hubX = config.getDouble(fieldX);
+        double hubY = config.getDouble(fieldY);
+        double hubZ = config.getDouble(fieldZ);
+        float hubYaw = (float) config.getDouble(fieldYaw);
+        float hubPitch = (float) config.getDouble(fieldPitch);
         this.locationSpawn = new Location(hubWorld, hubX, hubY, hubZ, hubYaw, hubPitch);
     }
 
-    /// Retrieve the spawn location.
-    public Location spawn() {
+    /// Retrieve the hub spawn location.
+    public Location getSpawn() {
         if (this.locationSpawn == null)
             throw new IllegalStateException("Missing setup, first run 'HubLocationsConfig.setupSpawn'");
         return this.locationSpawn.clone();

@@ -32,7 +32,7 @@ public class HubPlayerVoid implements Listener {
         }
 
         if (location.getBlockY() <= 0) {
-            player.teleport(ConfigurationManager.getHubLocations().spawn());
+            player.teleport(ConfigurationManager.getHubLocations().getSpawn());
         }
     }
 }

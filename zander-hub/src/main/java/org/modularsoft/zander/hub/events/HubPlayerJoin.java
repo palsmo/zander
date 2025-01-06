@@ -25,18 +25,16 @@ import org.modularsoft.zander.hub.utils.Misc;
 import org.modularsoft.zander.hub.utils.WelcomeSounds;
 
 public class HubPlayerJoin implements Listener {
-    // Misc settings
-    private static final boolean TEST_ALWAYS_FIRST_JOIN = false; // * default false
-    private static final int NAV_COMPASS_SLOT = 4;
-    private static final long ROUTINE_PLAYER_JOINED_DELAY = (long) (1.2f * 20);
+    // misc settings
+    private static final long ROUTINE_PLAYER_JOINED_DELAY = (long) (1.2f * 20); // ticks
 
-    // Sound settings
+    // sound settings
     private static final float SOUND_PITCH = 1.0f;
     private static final float SOUND_VOLUME = 1.0f;
 
-    // Firework settings
+    // firework settings
     private static final double FIREWORK_GROUND_HEIGHT = 3; // blocks
-    private static final long FIREWORK_DETONATE_DELAY = (long) (0.3f * 20);
+    private static final long FIREWORK_DETONATE_DELAY = (long) (0.3f * 20); // ticks
     private static final Color[] FIREWORK_COLOR_PALETTE = {
             Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.PURPLE,
             Color.ORANGE, Color.WHITE, Color.AQUA, Color.LIME,
@@ -61,22 +59,11 @@ public class HubPlayerJoin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-
         setInitialState(player); // * just be aware, runs before checking vanish
         if (Misc.isVanish(player))
             return;
-
-        event.joinMessage(ConfigurationManager.getMessages().playerJoin(player.displayName()));
-
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!player.isConnected())
-                return;
-            if (!player.hasPlayedBefore() || TEST_ALWAYS_FIRST_JOIN) { // * bukkit uses 'world/playerdata' dir
-                chatWelcomeMessage(player);
-                spawnWelcomeFirework(player);
-            }
-            playWelcomeSound(player);
-        }, ROUTINE_PLAYER_JOINED_DELAY);
+        event.joinMessage(ConfigurationManager.getMessages().getPlayerJoin(player.displayName()));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> scheduledLogin(player), ROUTINE_PLAYER_JOINED_DELAY);
     }
 
     /// Set special permission depending on the player.
@@ -88,11 +75,26 @@ public class HubPlayerJoin implements Listener {
 
     /// Set the initial state of the player in the world.
     private void setInitialState(Player player) {
+        int compassSlot = ConfigurationManager.getMisc().getSlotHubCompass();
         setupNoCollision(player);
-        player.teleport(ConfigurationManager.getHubLocations().spawn());
+        player.teleport(ConfigurationManager.getHubLocations().getSpawn());
         player.getInventory().clear();
-        player.getInventory().setHeldItemSlot(NAV_COMPASS_SLOT);
-        NavigationCompassItem.giveCompass(player);
+        player.getInventory().setHeldItemSlot(compassSlot);
+        player.getInventory().setItem(compassSlot, NavigationCompassItem.createCompass());
+    }
+
+    /// Delayed login triggers (logic that's not immediate on login).
+    private void scheduledLogin(Player player) {
+        if (!player.isConnected())
+            return;
+        // * bukkit determines by reading 'world/playerdata'
+        if (!player.hasPlayedBefore() || ConfigurationManager.getMisc().getAlwaysFirstJoin()) {
+            chatWelcomeMessageFirst(player);
+            spawnWelcomeFirework(player);
+        } else {
+            chatWelcomeMessageNormal(player);
+        }
+        playWelcomeSound(player);
     }
 
     /// Disable entity collision for player.
@@ -108,20 +110,24 @@ public class HubPlayerJoin implements Listener {
         team.addEntry(player.getName());
     }
 
+    /// Send a 'normal welcome' message in player's chat.
+    private void chatWelcomeMessageNormal(Player player) {
+        List<String> message = ConfigurationManager.getWelcome().getStringList("welcome");
+        for (String row : message)
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', row));
+    }
+
+    /// Send a 'new player welcome' message in player's chat.
+    private void chatWelcomeMessageFirst(Player player) {
+        List<String> message = ConfigurationManager.getWelcome().getStringList("welcome_newplayer");
+        for (String row : message)
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', row));
+    }
+
     /// Play a random sound for the player.
     private void playWelcomeSound(Player player) {
         Sound randomSound = WelcomeSounds.getRandomSound();
         player.playSound(player.getLocation(), randomSound, SOUND_VOLUME, SOUND_PITCH);
-    }
-
-    /// Send a welcome message in player's chat.
-    private void chatWelcomeMessage(Player player) {
-        List<String> message = ConfigurationManager.getWelcome().getStringList("newplayerwelcome");
-        player.sendMessage("");
-        for (String row : message) {
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&', row));
-        }
-        player.sendMessage("");
     }
 
     /// Spawn a pretty firework where the player is.

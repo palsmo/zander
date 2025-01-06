@@ -25,22 +25,25 @@ public class MessagesConfig {
         this.plugin = plugin;
     }
 
-    /// Configure the join/leave messages, ensures valid entries in 'config.yml'
+    /// Configure the player join/leave messages.
+    /// Validates the entries in server 'config.yml' with fallback.
     public void setupJoinLeave() {
         FileConfiguration config = plugin.getConfig();
 
-        String defaultJoin = "&7%p% <default join message>";
-        String defaultLeave = "&7%p% <default leave message>";
+        String fallbackJoin = "&7%p% <default join message>";
+        String fallbackLeave = "&7%p% <default leave message>";
+        String fieldJoin = "messages.join";
+        String fieldLeave = "messages.leave";
 
-        validateConfig(config, "messages.join", isValidJoinLeave, defaultJoin,
+        validateConfig(config, fieldJoin, isValidJoinLeave, fallbackJoin,
                 template -> this.textCompJoinTemplate = template);
-        validateConfig(config, "messages.leave", isValidJoinLeave, defaultLeave,
+        validateConfig(config, fieldLeave, isValidJoinLeave, fallbackLeave,
                 template -> this.textCompLeaveTemplate = template);
 
         plugin.saveConfig(); // * save to external 'config.yml'
 
-        String textLegacyJoin = config.getString("messages.join");
-        String textLegacyLeave = config.getString("messages.leave");
+        String textLegacyJoin = config.getString(fieldJoin);
+        String textLegacyLeave = config.getString(fieldLeave);
 
         if (this.plugin.getServer().getPluginManager().getPlugin("PremiumVanish") != null) {
             updatePremiumVanish(textLegacyJoin, textLegacyLeave);
@@ -48,13 +51,13 @@ public class MessagesConfig {
         }
     }
 
-    /// Retrieve join message for `playerName`
-    public Component playerJoin(Component playerName) {
+    /// Get join message for `playerName`
+    public Component getPlayerJoin(Component playerName) {
         return insertPlayerName(this.textCompJoinTemplate, playerName);
     }
 
-    /// Retrieve leave message for `playerName`
-    public Component playerLeave(Component playerName) {
+    /// Get leave message for `playerName`
+    public Component getPlayerLeave(Component playerName) {
         return insertPlayerName(this.textCompLeaveTemplate, playerName);
     }
 
@@ -63,7 +66,7 @@ public class MessagesConfig {
         if (template == null)
             throw new IllegalStateException("Missing setup, first run 'MessagesConfig.setupJoinLeave'");
         return template.replaceText(builder -> builder
-                .match("%p%") // * 'parseToTemplate' ensured single %p%
+                .match("%p%") // * validation ensured single %p%
                 .replacement(playerName)); // * style is handled as expected
     }
 
